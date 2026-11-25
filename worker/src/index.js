@@ -361,6 +361,7 @@ async function handleTelegram(request, env) {
     if (!ASSETS[sym] || !['above', 'below'].includes(dir) || !(level > 0)) { await tgSend(env, chat, 'Use: /alert BTC above 100000'); return new Response('ok'); }
     const a = await loadAlerts(env, chat);
     if (a.length >= 10) { await tgSend(env, chat, 'You can have at most 10 alerts. Use /clear first.'); return new Response('ok'); }
+    if (a.some((x) => x.sym === sym && x.dir === dir && x.level === level)) { await tgSend(env, chat, `You already have this alert: ${sym} ${dir} $${level}`); return new Response('ok'); }
     a.push({ sym, dir, level, created: Date.now() });
     await env.ALERTS.put(alKey(chat), JSON.stringify(a));
     await tgSend(env, chat, `Alert set: ${sym} ${dir} $${level}`);

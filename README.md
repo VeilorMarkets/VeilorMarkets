@@ -113,7 +113,7 @@ These are real limits, not hidden features:
 | Hosted read-only MCP server, datafeed, calendar feed | **Live** | Cloudflare Worker at https://veilor-worker.yansahsick.workers.dev (see `worker/`). Alerts need extra setup. |
 | Hosted data feed API | **Planned** | Needs a backend. |
 | Calendar feed subscriptions | **Planned** | Needs a backend. (Single-market `.ics` downloads work.) |
-| Alerts while the page is closed | **Not available** | Alerts run in the browser only. |
+| Alerts while the page is closed | **Live (Telegram)** | Spot-price alerts via [@VeilorAlertsBot](https://t.me/VeilorAlertsBot). Browser alerts still need the page open. |
 | Fair lines for non-crypto markets | **Not available** | There is no sound model for them, so the column stays empty. |
 | Trading across several venues | **Planned** | Not built. |
 
@@ -228,6 +228,8 @@ Open **Portfolio**, paste any address (`0x` followed by 40 hex characters), and 
 
 Alerts are checked while Veilor is open in a browser tab. When one triggers, it is marked as triggered and a notification appears, if you allowed notifications. Clearing the site data removes all alerts.
 
+**Telegram alerts (page closed):** message [@VeilorAlertsBot](https://t.me/VeilorAlertsBot) with `/alert BTC above 100000`, `/alerts` and `/clear`. These run on the Worker every minute, cover spot prices only (BTC, ETH, SOL, XRP, DOGE, BNB, GOLD), fire once, and allow at most 10 per chat. Your Telegram chat id is stored on the Worker to send the message. The bot never trades.
+
 ---
 
 ## Language and theme
@@ -321,9 +323,8 @@ The font IBM Plex Mono is embedded in `index.html` under the SIL Open Font Licen
 **Available now:** the console described above.
 
 **Planned, not built:**
-- A backend for alerts that run while the page is closed.
 - A hosted data feed and calendar feeds.
-- Telegram price alerts (code is in `worker/`; needs a bot token and KV binding).
+- Market-price and new-listing alerts on Telegram (today the bot covers spot prices only).
 - Trading across more than one venue.
 
 Dates are not promised. Items move from "planned" to "available" only when they work.
@@ -351,7 +352,7 @@ Treat it as a rough reference. It is a simple model with fixed volatility and ca
 A normal mobile browser has no wallet. Open Veilor inside your wallet app's browser.
 
 **Are my alerts sent to a server?**
-No. They live in your browser and only run while Veilor is open.
+Browser alerts: no. They live in your browser and only run while Veilor is open. Telegram alerts: yes, the Worker stores your chat id and the alert rules so it can message you.
 
 **Which chain does Veilor use?**
 Robinhood Chain (chain ID 4663) for the wallet and portfolio. The markets themselves are Polymarket's.
