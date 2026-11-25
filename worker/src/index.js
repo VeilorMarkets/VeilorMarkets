@@ -18,7 +18,7 @@
 
 const GAMMA = 'https://gamma-api.polymarket.com';
 const CLOB = 'https://clob.polymarket.com';
-const SITE = 'https://veilormarkets.github.io/VeilorMarkets/';
+const SITE = 'https://veilor.markets/';
 
 const ASSETS = {
   BTC: { vol: 0.45, cg: 'bitcoin', bn: 'BTCUSDT', cb: 'BTC' },

@@ -7,7 +7,7 @@
 <p align="center">
   <b>See the line. Trade the difference.</b><br>
   A console for prediction (outcome) markets, built on Robinhood Chain.<br>
-  <a href="https://veilormarkets.github.io/VeilorMarkets/">Live site</a> ·
+  <a href="https://veilor.markets/">Live site</a> ·
   <a href="https://x.com/VeilorMarkets">@VeilorMarkets</a>
 </p>
 
@@ -138,7 +138,7 @@ These are real limits, not hidden features:
 | Alerts | `/alerts` | Create and manage alerts |
 | Fees | `/builder` | Explains that Veilor charges no fee |
 
-The site uses hash routing, so every page works as a plain link such as `https://veilormarkets.github.io/VeilorMarkets/#/console`.
+The site uses hash routing, so every page works as a plain link such as `https://veilor.markets/#/console`.
 
 ---
 
