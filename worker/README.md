@@ -12,7 +12,7 @@ The small backend behind Veilor, as one Cloudflare Worker.
 | Fair line | `GET /api/fair?asset=BTC&strike=100000&end=2026-12-31&kind=above` | `kind`: above, below, touch, touchdn |
 | Calendar feed | `GET /cal/all.ics`, `/cal/crypto.ics`, `/cal/sports.ics` ... | Settlement dates; subscribe to the URL in any calendar app |
 | MCP server | `POST /mcp` | Tools: `list_markets`, `get_market`, `get_order_book`, `get_prices`, `fair_line` |
-| Telegram alerts | `POST /tg/webhook` plus a cron every minute | Price alerts that run while the website is closed |
+| Telegram alerts | `POST /tg/webhook` plus a cron every minute | Spot, market-price and new-market alerts that run while the website is closed |
 
 It is **read-only**. It never signs, routes or places orders and holds no funds. Fair lines are a simple lognormal estimate with a fixed volatility and can be wrong. Nothing here is investment advice.
 
@@ -62,13 +62,17 @@ You should see `"ok": true`. Now open your bot in Telegram and send `/start`.
 In Telegram:
 
 ```
-/alert BTC above 100000
+/alert BTC above 100000        spot price
 /alert ETH below 2500
+/markets bitcoin               find a market id
+/alert market 12345 above 60   market Yes price in cents
+/watch Crypto                  new markets (All, Sports, Crypto, Commodities, IPO, Equities, Macro, Awards, Politics, Other)
+/unwatch Crypto
 /alerts
-/clear
+/clear                         deletes all alerts and watches
 ```
 
-Each alert fires once and is then removed. The Worker checks every minute.
+Each price alert fires once and is then removed. The Worker checks every minute. Limits: 10 alerts and 5 watches per chat; market alerts are checked for at most 20 distinct markets per run. The first run after you enable watches only remembers current events, so you are told about markets that appear afterwards.
 
 ---
 
@@ -115,7 +119,7 @@ The tests use a fake network and a fake KV store (no internet needed). They cove
 
 - The public endpoints have no login and no rate limit of their own. Cloudflare's free plan caps daily requests. Responses are cached for a few seconds to protect the upstream APIs.
 - CoinGecko's free API is rate limited. If it fails, the Worker falls back to Binance (which blocks some data-centre regions) and Coinbase.
-- Alerts are per Telegram chat, at most 10 per chat, spot prices only.
-- The KV free plan allows 1,000 writes per day. Alerts write only when you add, clear or trigger one.
+- Alerts are per Telegram chat, at most 10 alerts and 5 watches per chat.
+- The KV free plan allows 1,000 writes and 1,000 list calls per day. The Worker keeps an index key so the cron makes no list calls, and writes only when you add, clear or trigger an alert or new markets appear.
 - Never commit your bot token or secret. They belong in **Variables and Secrets** only.
 - Not affiliated with Polymarket, CoinGecko, Binance, Coinbase, Telegram or Cloudflare.

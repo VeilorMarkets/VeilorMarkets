@@ -9,8 +9,8 @@
  *   GET  /api/fair?asset=&strike=&end=&kind=
  *   GET  /cal/:category.ics                settlement dates as a calendar feed
  *   POST /mcp                              MCP server (JSON-RPC over HTTP)
- *   POST /tg/webhook                       Telegram bot (price alerts)
- *   cron (every minute)                    checks price alerts and messages Telegram
+ *   POST /tg/webhook                       Telegram bot (spot, market and new-market alerts)
+ *   cron (every minute)                    checks alerts and messages Telegram
  *
  * It is read-only: it never signs, routes or places orders and holds no funds.
  * Fair lines are a simple lognormal estimate and can be wrong.
@@ -316,18 +316,30 @@ async function handleMCP(request) {
   return r ? json(r, 200, { 'cache-control': 'no-store' }) : new Response(null, { status: 202, headers: CORS });
 }
 
-/* ---------- Telegram price alerts ---------- */
+/* ---------- Telegram alerts ---------- */
 
+const WATCH_CATS = ['All', 'Sports', 'Crypto', 'Commodities', 'IPO', 'Equities', 'Macro', 'Awards', 'Politics', 'Other'];
 const HELP = [
-  'Veilor price alerts',
+  'Veilor alerts (read-only, never trades for you)',
   '',
+  'Spot price:',
   '/alert BTC above 100000',
   '/alert ETH below 2500',
-  '/alerts  - list your alerts',
-  '/clear  - delete all your alerts',
   '',
-  'Assets: ' + Object.keys(ASSETS).join(', '),
-  'Alerts are checked every minute and fire once. Veilor never trades for you. Not financial advice.',
+  'Market Yes price (in cents):',
+  '/markets bitcoin  - find a market id',
+  '/alert market 12345 above 60',
+  '',
+  'New markets:',
+  '/watch Crypto  - tell me when a new Crypto market appears',
+  '/unwatch Crypto',
+  '',
+  '/alerts  - list everything',
+  '/clear  - delete all alerts and watches',
+  '',
+  'Spot assets: ' + Object.keys(ASSETS).join(', '),
+  'Categories: ' + WATCH_CATS.join(', '),
+  'Checked every minute. Alerts fire once. Not financial advice.',
 ].join('\n');
 
 async function tgSend(env, chatId, text) {
@@ -337,8 +349,44 @@ async function tgSend(env, chatId, text) {
     body: JSON.stringify({ chat_id: chatId, text, disable_web_page_preview: true }),
   });
 }
+
 const alKey = (chatId) => 'al:' + chatId;
-async function loadAlerts(env, chatId) { const v = await env.ALERTS.get(alKey(chatId)); try { return v ? JSON.parse(v) : []; } catch (e) { return []; } }
+const wlKey = (chatId) => 'wl:' + chatId;
+async function kvJSON(env, k, d) { const v = await env.ALERTS.get(k); try { return v ? JSON.parse(v) : d; } catch (e) { return d; } }
+const loadAlerts = (env, chat) => kvJSON(env, alKey(chat), []);
+const loadWatches = (env, chat) => kvJSON(env, wlKey(chat), []);
+
+/* An index of chat ids avoids KV list calls every minute (the free plan allows only 1,000 list calls a day). */
+async function loadIdx(env) {
+  const i = await kvJSON(env, 'idx', null);
+  if (i && Array.isArray(i.al) && Array.isArray(i.wl)) return i;
+  const built = { al: [], wl: [] };
+  for (const [t, prefix] of [['al', 'al:'], ['wl', 'wl:']]) {
+    let cursor;
+    do { const r = await env.ALERTS.list({ prefix, cursor }); built[t].push(...r.keys.map((k) => k.name.slice(3))); cursor = r.list_complete ? undefined : r.cursor; } while (cursor);
+  }
+  await env.ALERTS.put('idx', JSON.stringify(built));
+  return built;
+}
+async function idxSet(env, type, chat, on) {
+  const i = await loadIdx(env), c = String(chat), has = i[type].includes(c);
+  if (on === has) return;
+  i[type] = on ? [...i[type], c] : i[type].filter((x) => x !== c);
+  await env.ALERTS.put('idx', JSON.stringify(i));
+}
+async function saveAlerts(env, chat, a) {
+  if (a.length) { await env.ALERTS.put(alKey(chat), JSON.stringify(a)); await idxSet(env, 'al', chat, true); }
+  else { await env.ALERTS.delete(alKey(chat)); await idxSet(env, 'al', chat, false); }
+}
+async function saveWatches(env, chat, w) {
+  if (w.length) { await env.ALERTS.put(wlKey(chat), JSON.stringify(w)); await idxSet(env, 'wl', chat, true); }
+  else { await env.ALERTS.delete(wlKey(chat)); await idxSet(env, 'wl', chat, false); }
+}
+
+const fmtAlert = (x) => (x.kind === 'market' ? `Market ${x.id}: "${x.q}" Yes ${x.dir} ${x.level}¢` : `${x.sym} ${x.dir} $${x.level}`);
+const sameAlert = (x, y) => (x.kind || 'spot') === (y.kind || 'spot') && x.dir === y.dir && x.level === y.level && x.sym === y.sym && x.id === y.id;
+const cleanLevel = (v) => num(String(v || '').replace(/[$,¢%]/g, ''));
+const catName = (v) => WATCH_CATS.find((c) => c.toLowerCase() === String(v || '').toLowerCase());
 
 async function handleTelegram(request, env) {
   if (!env.TG_SECRET || request.headers.get('x-telegram-bot-api-secret-token') !== env.TG_SECRET) return new Response('forbidden', { status: 403 });
@@ -349,48 +397,134 @@ async function handleTelegram(request, env) {
   const chat = msg.chat.id, text = msg.text.trim();
   const [cmdRaw, ...args] = text.split(/\s+/);
   const cmd = cmdRaw.split('@')[0].toLowerCase();
-  if (cmd === '/start' || cmd === '/help') { await tgSend(env, chat, HELP); return new Response('ok'); }
+  const say = async (t) => { await tgSend(env, chat, t); return new Response('ok'); };
+
+  if (cmd === '/start' || cmd === '/help') return say(HELP);
+
   if (cmd === '/alerts') {
-    const a = await loadAlerts(env, chat);
-    await tgSend(env, chat, a.length ? a.map((x, i) => `${i + 1}. ${x.sym} ${x.dir} $${x.level}`).join('\n') : 'No alerts yet. Try: /alert BTC above 100000');
-    return new Response('ok');
+    const a = await loadAlerts(env, chat), w = await loadWatches(env, chat);
+    const lines = a.map((x, i) => `${i + 1}. ${fmtAlert(x)}`);
+    if (w.length) lines.push('', 'Watching new markets: ' + w.join(', '));
+    return say(lines.length ? lines.join('\n') : 'Nothing yet. Try: /alert BTC above 100000');
   }
-  if (cmd === '/clear') { await env.ALERTS.delete(alKey(chat)); await tgSend(env, chat, 'All alerts deleted.'); return new Response('ok'); }
+
+  if (cmd === '/clear') {
+    await saveAlerts(env, chat, []); await saveWatches(env, chat, []);
+    return say('All alerts and watches deleted.');
+  }
+
+  if (cmd === '/markets') {
+    const q = args.join(' ').trim();
+    if (!q) return say('Use: /markets bitcoin');
+    const list = await listMarkets({ q, limit: 5 }).catch(() => null);
+    if (!list) return say('Could not reach the market source. Try again in a minute.');
+    if (!list.length) return say('No match among the most active markets. Try another word.');
+    return say(list.map((m) => `${m.id} · Yes ${m.yesPrice}¢ · ${m.question}`).join('\n') + '\n\nSet an alert: /alert market <id> above 60');
+  }
+
+  if (cmd === '/watch') {
+    const c = catName(args[0]);
+    const w = await loadWatches(env, chat);
+    if (!args[0]) return say((w.length ? 'Watching: ' + w.join(', ') + '\n\n' : '') + 'Use: /watch Crypto\nCategories: ' + WATCH_CATS.join(', '));
+    if (!c) return say('Unknown category. Choose: ' + WATCH_CATS.join(', '));
+    if (w.includes(c)) return say(`You already watch ${c}.`);
+    if (w.length >= 5) return say('You can watch at most 5 categories. Use /unwatch first.');
+    w.push(c); await saveWatches(env, chat, w);
+    return say(`Watching new ${c} markets. I will message you when one appears.`);
+  }
+
+  if (cmd === '/unwatch') {
+    const w = await loadWatches(env, chat);
+    if ((args[0] || '').toLowerCase() === 'all') { await saveWatches(env, chat, []); return say('Stopped watching all categories.'); }
+    const c = catName(args[0]);
+    if (!c || !w.includes(c)) return say('Use: /unwatch Crypto  (or /unwatch all)');
+    await saveWatches(env, chat, w.filter((x) => x !== c));
+    return say(`Stopped watching ${c}.`);
+  }
+
   if (cmd === '/alert') {
-    const sym = (args[0] || '').toUpperCase(), dir = (args[1] || '').toLowerCase(), level = num((args[2] || '').replace(/[$,]/g, ''));
-    if (!ASSETS[sym] || !['above', 'below'].includes(dir) || !(level > 0)) { await tgSend(env, chat, 'Use: /alert BTC above 100000'); return new Response('ok'); }
     const a = await loadAlerts(env, chat);
-    if (a.length >= 10) { await tgSend(env, chat, 'You can have at most 10 alerts. Use /clear first.'); return new Response('ok'); }
-    if (a.some((x) => x.sym === sym && x.dir === dir && x.level === level)) { await tgSend(env, chat, `You already have this alert: ${sym} ${dir} $${level}`); return new Response('ok'); }
-    a.push({ sym, dir, level, created: Date.now() });
-    await env.ALERTS.put(alKey(chat), JSON.stringify(a));
-    await tgSend(env, chat, `Alert set: ${sym} ${dir} $${level}`);
-    return new Response('ok');
+    let item;
+    if ((args[0] || '').toLowerCase() === 'market') {
+      const id = (args[1] || '').replace(/\D/g, ''), dir = (args[2] || '').toLowerCase(), level = cleanLevel(args[3]);
+      if (!id || !['above', 'below'].includes(dir) || !(level > 0 && level < 100)) return say('Use: /alert market 12345 above 60  (price in cents, 1 to 99)');
+      let x; try { x = await getJSON(`${GAMMA}/markets/${id}`, 10); } catch (e) { return say('Market not found. Find an id with /markets bitcoin'); }
+      const o = parseArr(x.outcomes), p = parseArr(x.outcomePrices);
+      if (!o || !p || o[0] !== 'Yes') return say('That market is not a Yes/No market.');
+      if (x.closed) return say('That market is already closed.');
+      item = { kind: 'market', id, q: String(x.question || '').slice(0, 70), dir, level, created: Date.now() };
+      if (a.length >= 10) return say('You can have at most 10 alerts. Use /clear first.');
+      if (a.some((y) => sameAlert(y, item))) return say(`You already have this alert: ${fmtAlert(item)}`);
+      a.push(item); await saveAlerts(env, chat, a);
+      return say(`Alert set: "${item.q}" Yes ${dir} ${level}¢ (now ${+(parseFloat(p[0]) * 100).toFixed(2)}¢)`);
+    }
+    const sym = (args[0] || '').toUpperCase(), dir = (args[1] || '').toLowerCase(), level = cleanLevel(args[2]);
+    if (!ASSETS[sym] || !['above', 'below'].includes(dir) || !(level > 0)) return say('Use: /alert BTC above 100000\nor: /alert market 12345 above 60');
+    item = { sym, dir, level, created: Date.now() };
+    if (a.length >= 10) return say('You can have at most 10 alerts. Use /clear first.');
+    if (a.some((y) => sameAlert(y, item))) return say(`You already have this alert: ${fmtAlert(item)}`);
+    a.push(item); await saveAlerts(env, chat, a);
+    return say(`Alert set: ${fmtAlert(item)}`);
   }
-  await tgSend(env, chat, HELP);
-  return new Response('ok');
+  return say(HELP);
+}
+
+const hitDir = (dir, v, level) => (dir === 'above' ? v >= level : v <= level);
+
+async function checkNewMarkets(env, chats) {
+  const evs = await getJSON(`${GAMMA}/events?active=true&closed=false&order=startDate&ascending=false&limit=30`, 30).catch(() => null);
+  if (!Array.isArray(evs) || !evs.length) return 0;
+  const ids = evs.map((e) => String(e.id));
+  const seen = await kvJSON(env, 'seen:v1', null);
+  if (!Array.isArray(seen)) { await env.ALERTS.put('seen:v1', JSON.stringify(ids)); return 0; } // first run: remember, do not notify
+  const known = new Set(seen);
+  const fresh = evs.filter((e) => !known.has(String(e.id)));
+  if (!fresh.length) return 0;
+  await env.ALERTS.put('seen:v1', JSON.stringify([...new Set([...ids, ...seen])].slice(0, 300)));
+  const subs = {};
+  for (const c of chats) subs[c] = await loadWatches(env, c);
+  let n = 0;
+  for (const ev of fresh.slice(0, 5)) {
+    const cat = catOf(ev);
+    for (const c of chats) {
+      if (subs[c].includes('All') || subs[c].includes(cat)) { await tgSend(env, c, `New market (${cat}): ${ev.title}\nhttps://polymarket.com/event/${ev.slug}`); n++; }
+    }
+  }
+  return n;
 }
 
 async function checkAlerts(env) {
-  if (!env.ALERTS || !env.TG_TOKEN) return { checked: 0, fired: 0 };
-  const keys = [];
-  let cursor;
-  do { const r = await env.ALERTS.list({ prefix: 'al:', cursor }); keys.push(...r.keys); cursor = r.list_complete ? undefined : r.cursor; } while (cursor);
-  if (!keys.length) return { checked: 0, fired: 0 };
-  const prices = await getPrices();
-  let fired = 0;
-  for (const k of keys) {
-    const chat = k.name.slice(3);
-    const a = await loadAlerts(env, chat);
-    const keep = [];
-    for (const x of a) {
-      const S = prices[x.sym];
-      const hit = S != null && (x.dir === 'above' ? S >= x.level : S <= x.level);
-      if (hit) { fired++; await tgSend(env, chat, `${x.sym} is $${S} (${x.dir} your $${x.level}).`); } else keep.push(x);
+  if (!env.ALERTS || !env.TG_TOKEN) return { checked: 0, fired: 0, newMarkets: 0 };
+  const idx = await loadIdx(env);
+  let fired = 0, newMarkets = 0;
+  if (idx.al.length) {
+    const lists = {};
+    for (const c of idx.al) lists[c] = await loadAlerts(env, c);
+    const all = Object.values(lists).flat();
+    const prices = all.some((x) => (x.kind || 'spot') === 'spot') ? await getPrices().catch(() => ({})) : {};
+    const mids = [...new Set(all.filter((x) => x.kind === 'market').map((x) => x.id))].slice(0, 20);
+    const mk = {};
+    await Promise.all(mids.map(async (id) => {
+      try { const x = await getJSON(`${GAMMA}/markets/${id}`, 15), p = parseArr(x.outcomePrices); mk[id] = { yes: p ? +(parseFloat(p[0]) * 100).toFixed(2) : null, closed: !!x.closed }; } catch (e) { /* skip this round */ }
+    }));
+    for (const c of idx.al) {
+      const a = lists[c], keep = [];
+      for (const x of a) {
+        if (x.kind === 'market') {
+          const m = mk[x.id];
+          if (m && m.closed) { fired++; await tgSend(env, c, `Market closed: "${x.q}". Alert removed.`); continue; }
+          if (m && m.yes != null && hitDir(x.dir, m.yes, x.level)) { fired++; await tgSend(env, c, `"${x.q}": Yes is ${m.yes}¢ (${x.dir} your ${x.level}¢).`); continue; }
+          keep.push(x);
+        } else {
+          const S = prices[x.sym];
+          if (S != null && hitDir(x.dir, S, x.level)) { fired++; await tgSend(env, c, `${x.sym} is $${S} (${x.dir} your $${x.level}).`); } else keep.push(x);
+        }
+      }
+      if (keep.length !== a.length) await saveAlerts(env, c, keep);
     }
-    if (keep.length !== a.length) { if (keep.length) await env.ALERTS.put(k.name, JSON.stringify(keep)); else await env.ALERTS.delete(k.name); }
   }
-  return { checked: keys.length, fired };
+  if (idx.wl.length) newMarkets = await checkNewMarkets(env, idx.wl);
+  return { checked: idx.al.length, fired, newMarkets };
 }
 
 /* ---------- router ---------- */

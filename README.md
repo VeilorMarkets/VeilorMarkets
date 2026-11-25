@@ -113,7 +113,7 @@ These are real limits, not hidden features:
 | Hosted read-only MCP server, datafeed, calendar feed | **Live** | Cloudflare Worker at https://veilor-worker.yansahsick.workers.dev (see `worker/`). Alerts need extra setup. |
 | Hosted data feed API | **Planned** | Needs a backend. |
 | Calendar feed subscriptions | **Planned** | Needs a backend. (Single-market `.ics` downloads work.) |
-| Alerts while the page is closed | **Live (Telegram)** | Spot-price alerts via [@VeilorAlertsBot](https://t.me/VeilorAlertsBot). Browser alerts still need the page open. |
+| Alerts while the page is closed | **Live (Telegram)** | Spot, market-price and new-market alerts via [@VeilorAlertsBot](https://t.me/VeilorAlertsBot). Browser alerts still need the page open. |
 | Fair lines for non-crypto markets | **Not available** | There is no sound model for them, so the column stays empty. |
 | Trading across several venues | **Planned** | Not built. |
 
@@ -228,7 +228,17 @@ Open **Portfolio**, paste any address (`0x` followed by 40 hex characters), and 
 
 Alerts are checked while Veilor is open in a browser tab. When one triggers, it is marked as triggered and a notification appears, if you allowed notifications. Clearing the site data removes all alerts.
 
-**Telegram alerts (page closed):** message [@VeilorAlertsBot](https://t.me/VeilorAlertsBot) with `/alert BTC above 100000`, `/alerts` and `/clear`. These run on the Worker every minute, cover spot prices only (BTC, ETH, SOL, XRP, DOGE, BNB, GOLD), fire once, and allow at most 10 per chat. Your Telegram chat id is stored on the Worker to send the message. The bot never trades.
+**Telegram alerts (page closed):** message [@VeilorAlertsBot](https://t.me/VeilorAlertsBot) and send:
+
+| Command | What it does |
+|---|---|
+| `/alert BTC above 100000` | Spot price alert (BTC, ETH, SOL, XRP, DOGE, BNB, GOLD) |
+| `/markets bitcoin` | Find a market id (searches the most active markets) |
+| `/alert market 12345 above 60` | Alert when that market's Yes price crosses 60¢ |
+| `/watch Crypto` | Message me when a new Crypto market is listed (`All` for every category) |
+| `/unwatch Crypto`, `/alerts`, `/clear` | Stop watching, list everything, delete everything |
+
+These run on the Worker every minute. Price alerts fire once, then are removed. At most 10 alerts and 5 watches per chat, and market alerts are checked for up to 20 distinct markets per minute across all users. New markets are detected from Polymarket's newest events and can be delayed by a minute or more. Your Telegram chat id is stored on the Worker to send the message. The bot never trades.
 
 ---
 
@@ -324,7 +334,6 @@ The font IBM Plex Mono is embedded in `index.html` under the SIL Open Font Licen
 
 **Planned, not built:**
 - A hosted data feed and calendar feeds.
-- Market-price and new-listing alerts on Telegram (today the bot covers spot prices only).
 - Trading across more than one venue.
 
 Dates are not promised. Items move from "planned" to "available" only when they work.

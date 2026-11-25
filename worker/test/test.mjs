@@ -7,8 +7,10 @@ const ok = (n, c, x = '') => { c ? pass++ : fail++; console.log((c ? 'OK   ' : '
 const sent = [];
 const J = (x, status = 200) => Promise.resolve(new Response(JSON.stringify(x), { status, headers: { 'content-type': 'application/json' } }));
 const far = new Date(Date.now() + 40 * 86400000).toISOString();
+let newEvents = [{ id: 'e0', slug: 'old', title: 'Old event', tags: [{ slug: 'crypto' }], markets: [] }];
 globalThis.fetch = async (u, o) => {
   u = String(u);
+  if (u.includes('order=startDate')) return J(newEvents);
   if (u.includes('coingecko')) return J({ bitcoin: { usd: 90000 }, ethereum: { usd: 3000 }, solana: { usd: 140 }, ripple: { usd: 2.5 }, dogecoin: { usd: 0.2 }, binancecoin: { usd: 600 }, 'pax-gold': { usd: 2650 } });
   if (u.includes('/events?')) return J(u.includes('tag_slug') ? [] : [{ id: 'e1', slug: 'btc-dec', title: 'Bitcoin price', tags: [{ slug: 'crypto' }], markets: [
     { id: '11', question: 'Will Bitcoin be above $100,000 on Dec 31?', outcomes: '["Yes","No"]', outcomePrices: '["0.25","0.75"]', clobTokenIds: '["tokA","tokB"]', endDate: far, active: true, closed: false, volume24hr: 5000, liquidityNum: 9000 },
@@ -75,6 +77,43 @@ let pending; await worker.scheduled({}, env, { waitUntil: (p) => { pending = p; 
 ok('cron fired the BTC alert only', sent.length === 1 && sent[0].text.includes('BTC'), JSON.stringify(sent.map((x) => x.text)));
 ok('fired alert removed, other kept', JSON.parse(kv.get('al:42')).length === 1 && JSON.parse(kv.get('al:42'))[0].sym === 'ETH');
 await tg('/clear'); ok('clear', !kv.has('al:42'));
+ok('index tracks chats', JSON.parse(kv.get('idx')).al.length === 0);
+
+/* ---- market alerts ---- */
+await tg('/markets bitcoin'); ok('markets search', sent.at(-1).text.includes('11 · Yes 25¢'), sent.at(-1).text);
+await tg('/alert market 11 above 20'); ok('market alert stored', JSON.parse(kv.get('al:42'))[0].kind === 'market', sent.at(-1).text);
+await tg('/alert market 11 above 20'); ok('market alert dedupe', sent.at(-1).text.startsWith('You already have'));
+await tg('/alert market 11 below 10');
+await tg('/alert market 999 above 50'); ok('unknown market rejected', sent.at(-1).text.startsWith('Market not found'));
+await tg('/alert market 11 above 150'); ok('bad level rejected', sent.at(-1).text.startsWith('Use:'));
+await tg('/alert BTC above 80000');
+await tg('/alerts'); ok('alerts list mixes kinds', sent.at(-1).text.includes('Yes above 20¢') && sent.at(-1).text.includes('BTC above $80000'), sent.at(-1).text);
+sent.length = 0;
+await worker.scheduled({}, env, { waitUntil: (p) => { pending = p; } }); await pending;
+ok('cron fired market + spot alert', sent.length === 2 && sent.some((x) => x.text.includes('Yes is 25¢')) && sent.some((x) => x.text.startsWith('BTC is')), JSON.stringify(sent.map((x) => x.text)));
+ok('only the below-10 alert remains', JSON.parse(kv.get('al:42')).length === 1 && JSON.parse(kv.get('al:42'))[0].dir === 'below');
+
+/* ---- new market watches ---- */
+await tg('/watch Nope'); ok('unknown category', sent.at(-1).text.startsWith('Unknown category'));
+await tg('/watch crypto'); ok('watch stored', JSON.parse(kv.get('wl:42')).join() === 'Crypto', sent.at(-1).text);
+await tg('/watch Crypto'); ok('watch dedupe', sent.at(-1).text.startsWith('You already watch'));
+await tg('/watch Sports', 43);
+sent.length = 0;
+await worker.scheduled({}, env, { waitUntil: (p) => { pending = p; } }); await pending;
+ok('first run only remembers events', sent.length === 0 && JSON.parse(kv.get('seen:v1')).includes('e0'));
+newEvents = [{ id: 'e9', slug: 'btc-new', title: 'Bitcoin new market', tags: [{ slug: 'crypto' }], markets: [] }, ...newEvents];
+await worker.scheduled({}, env, { waitUntil: (p) => { pending = p; } }); await pending;
+ok('new Crypto market notified once, to the right chat', sent.length === 1 && String(sent[0].chat_id) === '42' && sent[0].text.includes('Bitcoin new market'), JSON.stringify(sent.map((x) => [x.chat_id, x.text])));
+sent.length = 0;
+await worker.scheduled({}, env, { waitUntil: (p) => { pending = p; } }); await pending;
+ok('not notified twice', sent.length === 0);
+await tg('/unwatch crypto'); ok('unwatch', !kv.has('wl:42') && sent.at(-1).text.startsWith('Stopped'));
+await tg('/clear'); await tg('/clear', 43);
+ok('clear wipes alerts and watches', !kv.has('al:42') && !kv.has('wl:42') && !kv.has('wl:43'));
+ok('index emptied', JSON.parse(kv.get('idx')).al.length === 0 && JSON.parse(kv.get('idx')).wl.length === 0);
+const listCalls = []; const origList = env.ALERTS.list; env.ALERTS.list = async (o) => { listCalls.push(o); return origList(o); };
+await worker.scheduled({}, env, { waitUntil: (p) => { pending = p; } }); await pending;
+ok('cron makes no KV list calls once indexed', listCalls.length === 0);
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
