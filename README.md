@@ -110,7 +110,7 @@ These are real limits, not hidden features:
 | Item | Status | Why |
 |---|---|---|
 | Placing or signing orders in Veilor | **Not available** | Veilor has no venue of its own. The ticket links to Polymarket. |
-| Hosted MCP server for AI agents | **Planned** | Needs a backend that stays running. |
+| Hosted read-only MCP server, datafeed, calendar feed | **Live** | Cloudflare Worker at https://veilor-worker.yansahsick.workers.dev (see `worker/`). Alerts need extra setup. |
 | Hosted data feed API | **Planned** | Needs a backend. |
 | Calendar feed subscriptions | **Planned** | Needs a backend. (Single-market `.ics` downloads work.) |
 | Alerts while the page is closed | **Not available** | Alerts run in the browser only. |
@@ -129,7 +129,7 @@ These are real limits, not hidden features:
 | Roadmap | `/roadmap` | What exists and what is planned |
 | Case study | `/case-study` | A worked example with a Bitcoin market (example values) |
 | Docs | `/docs` | Guide to every number in the console |
-| MCP for agents | `/docs/mcp` | Explains why the MCP server is planned, not live |
+| MCP for agents | `/docs/mcp` | How to connect to the live MCP server |
 | Feature pages | `/features/<name>` | Live order books, fair lines, rules, order quotes, set tools, alerts, portfolio, developer access |
 | Status | `/status` | Live health of each data source |
 | About, Contact, Risk, Privacy, Terms | `/about` etc. | Plain-language info and legal pages |
@@ -323,7 +323,7 @@ The font IBM Plex Mono is embedded in `index.html` under the SIL Open Font Licen
 **Planned, not built:**
 - A backend for alerts that run while the page is closed.
 - A hosted data feed and calendar feeds.
-- A hosted MCP server so AI agents can read markets, order books and fair lines.
+- Telegram price alerts (code is in `worker/`; needs a bot token and KV binding).
 - Trading across more than one venue.
 
 Dates are not promised. Items move from "planned" to "available" only when they work.
