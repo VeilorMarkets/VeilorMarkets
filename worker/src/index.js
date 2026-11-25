@@ -26,8 +26,8 @@ const ASSETS = {
   SOL: { vol: 0.85, cg: 'solana', bn: 'SOLUSDT', cb: 'SOL' },
   XRP: { vol: 0.75, cg: 'ripple', bn: 'XRPUSDT', cb: 'XRP' },
   DOGE: { vol: 0.95, cg: 'dogecoin', bn: 'DOGEUSDT', cb: 'DOGE' },
-  BNB: { vol: 0.5, cg: 'binancecoin', bn: 'BNBUSDT', cb: null },
-  GOLD: { vol: 0.16, cg: 'pax-gold', bn: 'PAXGUSDT', cb: null },
+  BNB: { vol: 0.5, cg: 'binancecoin', bn: 'BNBUSDT', cb: 'BNB', kr: 'BNBUSD' },
+  GOLD: { vol: 0.16, cg: 'pax-gold', bn: 'PAXGUSDT', cb: 'PAXG', kr: 'PAXGUSD' },
 };
 const NAMES = { bitcoin: 'BTC', btc: 'BTC', ethereum: 'ETH', eth: 'ETH', solana: 'SOL', sol: 'SOL', xrp: 'XRP', ripple: 'XRP', dogecoin: 'DOGE', doge: 'DOGE', bnb: 'BNB', gold: 'GOLD' };
 
@@ -105,28 +105,37 @@ function parseFX(q) {
 
 /* ---------- prices ---------- */
 
-async function getPrices() {
-  const out = {};
+/** Spot prices with the source that answered for each asset. Order: CoinGecko, Binance, Kraken (BNB and gold), Coinbase. */
+async function getPricesFull() {
+  const out = {}, src = {};
   // CoinGecko first, because Binance blocks some data-centre regions.
   try {
     const ids = Object.values(ASSETS).map((a) => a.cg).join(',');
     const a = await getJSON(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`, 20);
-    for (const [k, c] of Object.entries(ASSETS)) if (a[c.cg] && a[c.cg].usd) out[k] = a[c.cg].usd;
+    for (const [k, c] of Object.entries(ASSETS)) if (a[c.cg] && a[c.cg].usd) { out[k] = a[c.cg].usd; src[k] = 'coingecko'; }
   } catch (e) { /* fall through */ }
-  const missing = Object.keys(ASSETS).filter((k) => out[k] == null);
+  let missing = Object.keys(ASSETS).filter((k) => out[k] == null);
   if (missing.length) {
     try {
       const syms = missing.map((k) => ASSETS[k].bn);
       const a = await getJSON('https://api.binance.com/api/v3/ticker/price?symbols=' + encodeURIComponent(JSON.stringify(syms)), 10);
-      for (const k of missing) { const x = a.find((y) => y.symbol === ASSETS[k].bn); if (x) out[k] = +x.price; }
+      for (const k of missing) { const x = a.find((y) => y.symbol === ASSETS[k].bn); if (x) { out[k] = +x.price; src[k] = 'binance'; } }
+    } catch (e) { /* fall through */ }
+  }
+  missing = Object.keys(ASSETS).filter((k) => out[k] == null && ASSETS[k].kr);
+  if (missing.length) {
+    try {
+      const a = await getJSON('https://api.kraken.com/0/public/Ticker?pair=' + missing.map((k) => ASSETS[k].kr).join(','), 10);
+      for (const k of missing) { const t = a.result && a.result[ASSETS[k].kr]; const v = t && t.c && num(t.c[0]); if (v > 0) { out[k] = v; src[k] = 'kraken'; } }
     } catch (e) { /* fall through */ }
   }
   for (const k of Object.keys(ASSETS)) {
     if (out[k] != null || !ASSETS[k].cb) continue;
-    try { out[k] = +(await getJSON(`https://api.coinbase.com/v2/prices/${ASSETS[k].cb}-USD/spot`, 10)).data.amount; } catch (e) { /* ignore */ }
+    try { const v = num((await getJSON(`https://api.coinbase.com/v2/prices/${ASSETS[k].cb}-USD/spot`, 10)).data.amount); if (v > 0) { out[k] = v; src[k] = 'coinbase'; } } catch (e) { /* ignore */ }
   }
-  return out;
+  return { prices: out, sources: src };
 }
+async function getPrices() { return (await getPricesFull()).prices; }
 
 /* ---------- markets ---------- */
 
@@ -537,7 +546,7 @@ export default {
     try {
       if (path === '/' || path === '/api/health') return json({ ok: true, service: 'veilor-worker', site: SITE, time: new Date().toISOString(),
         endpoints: ['/api/prices', '/api/markets', '/api/market/:id', '/api/book', '/api/fair', '/cal/all.ics', 'POST /mcp', 'POST /tg/webhook'] });
-      if (path === '/api/prices') return json({ prices: await getPrices(), source: 'CoinGecko, falling back to Binance and Coinbase', ts: Date.now() });
+      if (path === '/api/prices') { const f = await getPricesFull(); return json({ prices: f.prices, sources: f.sources, missing: Object.keys(ASSETS).filter((k) => f.prices[k] == null), note: 'Order tried: CoinGecko, Binance, Kraken (BNB and gold), Coinbase.', ts: Date.now() }); }
       if (path === '/api/markets') return json({ markets: await listMarkets({ category: url.searchParams.get('category'), q: url.searchParams.get('q'), limit: num(url.searchParams.get('limit'), 50) }) });
       if (path.startsWith('/api/market/')) return json(await getMarket(decodeURIComponent(path.slice(12))));
       if (path === '/api/book') {

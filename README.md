@@ -48,7 +48,7 @@ Veilor is a read-only console on top of those markets. It brings together, in on
 - your wallet and portfolio on Robinhood Chain,
 - price alerts.
 
-Veilor is **one static HTML file**. It has no server and no account. Your browser asks the public APIs listed below directly.
+Veilor's site is **one static HTML file** with no account. Your browser asks the public APIs listed below directly. A separate read-only Cloudflare Worker (in `worker/`) adds a datafeed, calendar feeds, an MCP server and the Telegram alert bot.
 
 > **Important:** Veilor never places, signs or routes orders and never holds funds. The order ticket shows a quote, and its button opens the market on Polymarket, where you trade with your own account.
 
@@ -111,8 +111,8 @@ These are real limits, not hidden features:
 |---|---|---|
 | Placing or signing orders in Veilor | **Not available** | Veilor has no venue of its own. The ticket links to Polymarket. |
 | Hosted read-only MCP server, datafeed, calendar feed | **Live** | Cloudflare Worker at https://veilor-worker.yansahsick.workers.dev (see `worker/`). Alerts need extra setup. |
-| Hosted data feed API | **Planned** | Needs a backend. |
-| Calendar feed subscriptions | **Planned** | Needs a backend. (Single-market `.ics` downloads work.) |
+| Hosted data feed API | **Live** | `/api/prices`, `/api/markets` and `/api/market/:id` on the Worker. Read-only, free-tier limits. |
+| Calendar feed subscriptions | **Live** | `/cal/<category>.ics` on the Worker, for example `/cal/all.ics`. |
 | Alerts while the page is closed | **Live (Telegram)** | Spot, market-price and new-market alerts via [@VeilorAlertsBot](https://t.me/VeilorAlertsBot). Browser alerts still need the page open. |
 | Fair lines for non-crypto markets | **Not available** | There is no sound model for them, so the column stays empty. |
 | Trading across several venues | **Planned** | Not built. |
@@ -287,7 +287,8 @@ To remove everything, clear this site's data in your browser settings.
 
 ## Privacy and security
 
-- No account, no login, no cookies set by Veilor, and no server of its own.
+- No account, no login, no cookies set by Veilor, and no backend for the site itself.
+- The Telegram bot stores your Telegram chat id and your alert settings so it can message you. Send `/clear` to delete your alerts. The Worker never signs or places orders.
 - Your browser contacts the public APIs listed above directly. Those services can see your IP address, like any website you visit. Addresses you look up in Portfolio are sent to the Robinhood Chain RPC, Blockscout and Polymarket to fetch their data.
 - Veilor never asks for a seed phrase or private key. Never enter one on any website.
 - Wallet connection requests your address only, with no signature and no spending approval.
@@ -333,7 +334,6 @@ The font IBM Plex Mono is embedded in `index.html` under the SIL Open Font Licen
 **Available now:** the console described above.
 
 **Planned, not built:**
-- A hosted data feed and calendar feeds.
 - Trading across more than one venue.
 
 Dates are not promised. Items move from "planned" to "available" only when they work.

@@ -8,8 +8,12 @@ const sent = [];
 const J = (x, status = 200) => Promise.resolve(new Response(JSON.stringify(x), { status, headers: { 'content-type': 'application/json' } }));
 const far = new Date(Date.now() + 40 * 86400000).toISOString();
 let newEvents = [{ id: 'e0', slug: 'old', title: 'Old event', tags: [{ slug: 'crypto' }], markets: [] }];
+let cgDown = false;
 globalThis.fetch = async (u, o) => {
   u = String(u);
+  if (cgDown && (u.includes('coingecko') || u.includes('binance.com'))) return J({}, 451);
+  if (u.includes('api.kraken.com')) return J({ error: [], result: { BNBUSD: { c: ['551.5', '1'] }, PAXGUSD: { c: ['3543.8', '1'] } } });
+  if (u.includes('api.coinbase.com')) { const m = /prices\/([A-Z]+)-USD/.exec(u); const v = { BTC: 91000, ETH: 3100, SOL: 141, XRP: 2.4, DOGE: 0.21, BNB: 700, PAXG: 3900 }[m[1]]; return v ? J({ data: { amount: String(v) } }) : J({}, 404); }
   if (u.includes('order=startDate')) return J(newEvents);
   if (u.includes('coingecko')) return J({ bitcoin: { usd: 90000 }, ethereum: { usd: 3000 }, solana: { usd: 140 }, ripple: { usd: 2.5 }, dogecoin: { usd: 0.2 }, binancecoin: { usd: 600 }, 'pax-gold': { usd: 2650 } });
   if (u.includes('/events?')) return J(u.includes('tag_slug') ? [] : [{ id: 'e1', slug: 'btc-dec', title: 'Bitcoin price', tags: [{ slug: 'crypto' }], markets: [
@@ -44,6 +48,10 @@ ok('ics shape', /BEGIN:VCALENDAR[\s\S]*END:VCALENDAR/.test(buildICS([{ id: '1', 
 /* ---- http ---- */
 let r = await call('/api/health'); ok('health', r.status === 200 && (await r.json()).ok);
 r = await call('/api/prices'); let j = await r.json(); ok('prices', j.prices.BTC === 90000 && j.prices.GOLD === 2650);
+cgDown = true; r = await call('/api/prices'); j = await r.json();
+ok('fallback fills all 7 assets', Object.keys(j.prices).length === 7 && j.missing.length === 0, JSON.stringify(j));
+ok('BNB and GOLD come from Kraken, the rest from Coinbase', j.sources.BNB === 'kraken' && j.sources.GOLD === 'kraken' && j.sources.BTC === 'coinbase', JSON.stringify(j.sources));
+ok('prices ok when CoinGecko answers', (cgDown = false, (await (await call('/api/prices')).json()).sources.BNB === 'coingecko'));
 r = await call('/api/markets'); j = await r.json(); ok('markets', j.markets.length === 2, j.markets.length);
 ok('market fair line only for crypto', j.markets.find((m) => m.id === '11').fairLine > 0 && j.markets.find((m) => m.id === '12').fairLine === null);
 r = await call('/api/markets?category=Crypto'); j = await r.json(); ok('category filter', j.markets.every((m) => m.category === 'Crypto'));
