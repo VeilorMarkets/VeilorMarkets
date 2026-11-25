@@ -1,0 +1,20 @@
+name = "veilor-worker"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+
+# Check price alerts every minute (Telegram bot).
+[triggers]
+crons = ["* * * * *"]
+
+# Alerts are stored in a KV namespace bound as ALERTS.
+# Create it in the Cloudflare dashboard (Storage & databases -> KV), then bind it to this Worker:
+# Worker -> Settings -> Bindings -> Add -> KV namespace -> variable name: ALERTS
+# Or uncomment the block below and paste the namespace id:
+# [[kv_namespaces]]
+# binding = "ALERTS"
+# id = "PASTE_NAMESPACE_ID_HERE"
+
+# Secrets (never put these in this file). Add them in the dashboard:
+# Worker -> Settings -> Variables and Secrets
+#   TG_TOKEN   token of your Telegram bot (from @BotFather)
+#   TG_SECRET  any long random string; also used when you set the webhook

@@ -1,0 +1,14 @@
+{
+  "name": "veilor-worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Veilor backend: datafeed, calendar feeds, MCP server and Telegram price alerts (Cloudflare Worker)",
+  "scripts": {
+    "test": "node test/test.mjs",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4"
+  }
+}
