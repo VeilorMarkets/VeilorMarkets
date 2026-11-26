@@ -343,6 +343,10 @@ const HELP = [
   '/watch Crypto  - tell me when a new Crypto market appears',
   '/unwatch Crypto',
   '',
+  'Daily digest:',
+  '/digest on  - get a daily summary of spot prices and your alerts (about 08:00 UTC)',
+  '/digest off',
+  '',
   '/alerts  - list everything',
   '/clear  - delete all alerts and watches',
   '',
@@ -417,6 +421,14 @@ async function handleTelegram(request, env) {
     return say(lines.length ? lines.join('\n') : 'Nothing yet. Try: /alert BTC above 100000');
   }
 
+  if (cmd === '/digest') {
+    const arg = (args[0] || '').toLowerCase();
+    if (arg !== 'on' && arg !== 'off') return say('Use: /digest on  or  /digest off');
+    const dg = (await kvJSON(env, 'dg:idx', [])).map(String), c = String(chat), has = dg.includes(c);
+    if (arg === 'on' && !has) await env.ALERTS.put('dg:idx', JSON.stringify([...dg, c]));
+    if (arg === 'off' && has) await env.ALERTS.put('dg:idx', JSON.stringify(dg.filter((x) => x !== c)));
+    return say(arg === 'on' ? 'Daily digest on. You will get a summary of spot prices and your alerts once a day (about 08:00 UTC). Send /digest off to stop.' : 'Daily digest off.');
+  }
   if (cmd === '/clear') {
     await saveAlerts(env, chat, []); await saveWatches(env, chat, []);
     return say('All alerts and watches deleted.');
@@ -536,6 +548,21 @@ async function checkAlerts(env) {
   return { checked: idx.al.length, fired, newMarkets };
 }
 
+async function sendDigest(env) {
+  if (!env.ALERTS || !env.TG_TOKEN) return 0;
+  const chats = (await kvJSON(env, 'dg:idx', [])).map(String);
+  if (!chats.length) return 0;
+  const prices = await getPrices().catch(() => ({}));
+  const lines = Object.keys(ASSETS).filter((k) => prices[k] != null).map((k) => `${k}: $${prices[k]}`);
+  let n = 0;
+  for (const c of chats) {
+    const al = await loadAlerts(env, c);
+    const body = ['Veilor daily digest', '', ...(lines.length ? lines : ['Spot prices unavailable right now.']), '', al.length ? 'Your alerts:\n' + al.map(fmtAlert).join('\n') : 'You have no alerts. Try /alert BTC above 100000', '', 'Prices are indicative. Not financial advice. /digest off to stop.'].join('\n');
+    await tgSend(env, c, body); n++;
+  }
+  return n;
+}
+
 /* ---------- router ---------- */
 
 export default {
@@ -579,7 +606,11 @@ export default {
       return json({ error: String(e.message || e) }, 502, { 'cache-control': 'no-store' });
     }
   },
-  async scheduled(event, env, ctx) { ctx.waitUntil(checkAlerts(env)); },
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(checkAlerts(env));
+    const t = new Date(event.scheduledTime);
+    if (t.getUTCHours() === 8 && t.getUTCMinutes() === 0) ctx.waitUntil(sendDigest(env));
+  },
 };
 
-export { fairLine, parseFX, quote, buildICS, mapMarket, checkAlerts, pAbove };
+export { fairLine, parseFX, quote, buildICS, mapMarket, checkAlerts, sendDigest, pAbove };
