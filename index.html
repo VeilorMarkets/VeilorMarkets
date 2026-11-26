@@ -364,6 +364,11 @@ table.t{width:100%;border-collapse:collapse;font-size:11px}
 @media(max-width:560px){.ct{flex-wrap:wrap;gap:6px}.ct .mut{display:none}.ct a[href*="docs"]{display:none}.ct .live{display:none!important}.ct .btn.p{padding:8px 10px;font-size:10px;white-space:nowrap}.ct .sp{flex:1}.cm .rw input{min-width:0!important;width:100%}.stats3{grid-template-columns:1fr!important}}
 .coin{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;font-weight:700;line-height:1;vertical-align:-4px;margin-right:4px;flex:none;font-family:system-ui,sans-serif}
 .vl{width:22px;height:22px;flex:none;vertical-align:middle;margin-right:2px}.hbadge .vl{width:36px;height:36px;margin:0}.logo .vl{width:24px;height:24px}
+
+.sr{opacity:0;transform:translateY(28px);transition:opacity .75s cubic-bezier(.2,.7,.2,1),transform .75s cubic-bezier(.2,.7,.2,1);transition-delay:var(--d,0ms);will-change:opacity,transform}
+.sr.in{opacity:1;transform:none}
+body.paused .sr,body.paused .sr.in{opacity:1;transform:none;transition:none}
+@media (prefers-reduced-motion:reduce){.sr{opacity:1;transform:none;transition:none}}
 </style>
 </head>
 <body>
@@ -480,8 +485,8 @@ const ROAD=[
  ['Paid API','NEXT','A paid API.','Higher request limits and history for bot teams that build on Robinhood Chain data. The market tools stay free.',['Higher request limits','Historical books and fair lines','The free tools stay free']]
 ];
 const GUIDES=[['A Bitcoin order, step by step','Compare the rules and review every fee before you sign.','#/case-study','books'],['Inside the Veilor Console','Find your way around the workspace and its controls.','#/docs','portfolio'],['Why settlement rules come first','How source, threshold and cut-off change a comparison.','#/features/rule-grades','rules'],['Roadmap','What we plan to build after the Console.','#/roadmap','api']];
-const CA='0x0000000000000000000000000000000000000000';
-const TOKEN='$VEIL';
+const CA='0x4d2ed6a271f17dd51ae7cd61ff81a26c9877f37d';
+const TOKEN='$VEILOR';
 
 /* ============ line-art ============ */
 const S='stroke="currentColor" fill="none" stroke-width="1"';
@@ -807,7 +812,7 @@ $('#lang').onclick=()=>{zh=!zh;applyLang()};
 $('#burger').onclick=()=>$('#panel').classList.toggle('open');
 function footer(){return `<div class="wrap"><div class="fcards"><div class="card fx"><a href="#/" class="logo"><svg class="vl" viewBox="0 0 24 24"><path d="M2.3 10Q12 2.4 21.7 10Q12 7.2 2.3 10Z" fill="var(--sel)" stroke="var(--ac)" stroke-width="1.1" stroke-linejoin="round"/><path d="M5.7 6L12 19.2L18.3 6" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="19.2" r="1.1" fill="var(--bg)" stroke="var(--ac)" stroke-width=".9"/></svg>VEILOR</a><h3>Explore Veilor.</h3><p class="mut" style="font-size:10.5px">Guides to the Console and the details behind every number.</p><a href="#/console" style="font-size:9.5px;display:inline-block;margin-top:14px">OPEN CONSOLE →</a><div class="cols"><div><h6>Resources</h6><a href="#/console">Console</a><a href="#/how-it-works">How it works</a><a href="#/case-study">Case study</a><a href="#/docs">Documentation</a><a href="#/roadmap">Roadmap</a></div><div><h6>Company</h6><a href="#/about">About</a><a href="#/pricing">Pricing</a><a href="#/contact">Contact</a><a href="#/status">System status</a></div><div><h6>Legal</h6><a href="#/privacy">Privacy</a><a href="#/terms">Terms</a><a href="#/risk">Risk disclosure</a><a href="#/builder">Builder fees</a></div></div></div>
 <div><div class="card fx" style="min-height:0"><div class="mut" style="font-size:8.5px;letter-spacing:.12em">PRODUCT &amp; INTEGRATIONS</div><h3 style="font-size:19px">Questions about Veilor?</h3><p class="mut" style="font-size:10px">Read the product documentation or send the team a note.</p><a class="fl2" href="#/contact" style="margin-top:20px"><span>GET IN TOUCH</span><span>↗</span></a><a class="fl2" href="#/docs"><span>READ DOCS</span><span>↗</span></a></div><div class="tiles3"><a href="#/docs/mcp">${ICONS.code}MCP FOR AGENTS</a><a href="#/status">${ICONS.chart}STATUS</a><a href="#/how-it-works">${ICONS.book}START HERE</a></div></div></div>
-<div class="tk" ${/^0x0+$/.test(CA)?'hidden':''}><b>${TOKEN}</b><span>ROBINHOOD CHAIN</span><code>${CA}</code><a href="${RH.ex}/token/${CA}" target="_blank" rel="noopener">BLOCKSCOUT ↗</a></div>
+<div class="tk" ${/^0x0+$/.test(CA)?'hidden':''}><b>${TOKEN}</b><span>ROBINHOOD CHAIN</span><span>CONTRACT</span><code>${CA}</code><a href="#" onclick="try{navigator.clipboard.writeText('${CA}');toast('Contract copied')}catch(e){}return false">COPY</a><a href="${RH.ex}/token/${CA}" target="_blank" rel="noopener">BLOCKSCOUT ↗</a></div>
 <div class="fb"><span>© VEILOR 2026</span><span>ROBINHOOD CHAIN OUTCOME MARKETS</span><span class="soc"><a href="${GH_URL}" target="_blank" rel="noopener" aria-label="GitHub (VeilorMarkets)">${ICONS.gh}</a><a href="${X_URL}" target="_blank" rel="noopener" aria-label="X (@VeilorMarkets)">${ICONS.x}</a><a href="${TG_URL}" target="_blank" rel="noopener" aria-label="Telegram bot (@VeilorAlertsBot)">${ICONS.tg}</a></span><a href="#" data-top>BACK TO TOP ↑</a></div><div style="padding-bottom:30px"></div></div>`}
 function after(){
  statusInit();applyLang();heroCanvas();pixelCanvas();
@@ -870,7 +875,7 @@ async function connectWallet(){
  try{window.dispatchEvent(new Event('eip6963:requestProvider'))}catch(x){}
  walletModal('connect')}
 const REOWN_ID='974177a20c9ca1534c805c148de30b5a';
-async function wcLoad(){
+async function wcLoad(){throw new Error('off');
  if(window._ak)return window._ak;
  const[A,E,N]=await Promise.all([import('https://esm.sh/@reown/appkit'),import('https://esm.sh/@reown/appkit-adapter-ethers'),import('https://esm.sh/@reown/appkit/networks')]);
  const rh=N.defineChain({id:4663,caipNetworkId:'eip155:4663',chainNamespace:'eip155',name:RH.name,nativeCurrency:{name:'Ether',symbol:'ETH',decimals:18},rpcUrls:{default:{http:[RH.rpc]}},blockExplorers:{default:{name:'Explorer',url:RH.ex}}});
@@ -912,7 +917,7 @@ function walletModal(kind){
   const LK=[['MetaMask',WI('metamask','🦊'),DL.mm],['Coinbase Wallet',WI('coinbase','🔵'),DL.cb],['Trust Wallet',WI('trust','🛡️'),DL.tw]];
   LK.forEach(l=>{if(fl(l[0])&&!ins.some(d=>d.info&&(d.info.name||'').toLowerCase().includes(l[0].split(' ')[0].toLowerCase())))rows+=lk(l[0],l[1],l[2])});
   if(!rows)rows='<p class="mut" style="font-size:11px;padding:14px 4px;text-align:center">No wallet matches your search.</p>';
-  h=`<h4 style="text-align:center;margin:0 0 12px">Connect Wallet</h4><button class="wli" id="wcb" style="margin-bottom:10px;border-color:var(--ac)"><span class="wic">🔗</span><span class="wn">WalletConnect</span><span class="wtg">100+ WALLETS</span></button><input id="wsq" class="wsq" placeholder="Search Wallet" value="${q.replace(/"/g,'')}" autocomplete="off"><div class="wls">${rows}</div><p class="mut" style="font-size:10px;line-height:1.6;margin:12px 2px 0">Veilor only reads your address and balance. It never signs transactions or places orders. No wallet installed? Open this page in your wallet app’s browser, or add the network manually: <a href="#" id="wmn" style="text-decoration:underline">network details</a>.</p><p class="mut" style="text-align:center;font-size:9px;margin:10px 0 0;letter-spacing:.08em">Chain ${RH.name} · ${RH.id}</p>`}
+  h=`<h4 style="text-align:center;margin:0 0 12px">Connect Wallet</h4><input id="wsq" class="wsq" placeholder="Search Wallet" value="${q.replace(/"/g,'')}" autocomplete="off"><div class="wls">${rows}</div><p class="mut" style="font-size:10px;line-height:1.6;margin:12px 2px 0">Veilor only reads your address and balance. It never signs transactions or places orders. No wallet installed? Open this page in your wallet app’s browser, or add the network manually: <a href="#" id="wmn" style="text-decoration:underline">network details</a>.</p><p class="mut" style="text-align:center;font-size:9px;margin:10px 0 0;letter-spacing:.08em">Chain ${RH.name} · ${RH.id}</p>`}
  else if(kind==='nowallet'){h=`<h4>No wallet found</h4><p class="mut" style="font-size:11px;line-height:1.6;margin:8px 0 12px">Veilor connects to a browser wallet (MetaMask, Rabby, Coinbase Wallet…). Install one, or open this page inside your wallet’s in-app browser. To add the network manually use:</p>${row('Network',RH.name)}${row('Chain ID',RH.id)}${row('RPC URL','<span style="font-size:9px">'+RH.rpc+'</span>')}${row('Currency','ETH')}${row('Explorer','<span style="font-size:9px">'+RH.ex+'</span>')}<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><a class="btn p sm" href="${DL.mm}" target="_blank" rel="noopener">OPEN IN METAMASK</a><a class="btn sm" href="${DL.cb}" target="_blank" rel="noopener">OPEN IN COINBASE WALLET</a><a class="btn sm" href="${DL.tw}" target="_blank" rel="noopener">OPEN IN TRUST WALLET</a></div><button class="btn sm" id="wcp" style="margin-top:12px">COPY RPC URL</button>`}
  else{const bad=W.chain!==RH.hex;h=`<h4>Wallet</h4><p style="word-break:break-all;font-size:11px;margin:10px 0">${W.addr}</p>${row('Network',bad?'<span class="dn">Wrong network</span>':RH.name)}${row('ETH balance',W.bal==null?'—':W.bal+' ETH')}<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">${bad?'<button class="btn p sm" id="wsw">SWITCH TO ROBINHOOD CHAIN</button>':''}<a class="btn sm" href="#/portfolio/${W.addr}" id="wpf">PORTFOLIO</a><a class="btn sm" target="_blank" rel="noopener" href="${RH.ex}/address/${W.addr}">EXPLORER ↗</a><button class="btn sm" id="wdc">DISCONNECT</button></div>`}
  m.innerHTML=`<div class="wbx"><button class="wx" id="wcl">✕</button>${h}</div>`;document.body.appendChild(m);
@@ -1100,6 +1105,23 @@ document.addEventListener('keydown',e=>{const t=(e.target.tagName||'').toLowerCa
  if(e.key==='Escape'&&$('#scd'))$('#scd').remove();
  if(window._g&&Date.now()-window._g<1500){const m={m:'#/console',n:'#/console/new',e:'#/console/edges',p:'#/portfolio',a:'#/alerts'}[e.key.toLowerCase()];window._g=0;if(m)location.hash=m;return}
  if(e.key.toLowerCase()==='g'&&!e.ctrlKey&&!e.metaKey)window._g=Date.now()});
+
+function scrollFX(){
+ if(document.querySelector('.con'))return;
+ const sel='section:not(.hero) .wrap > *, section:not(.hero) .card, section:not(.hero) h2, section:not(.hero) .eb, section:not(.hero) .sub, footer > *, .close > *';
+ let els;try{els=[...document.querySelectorAll(sel)]}catch(e){return}
+ const hs=e=>{for(let p=e.parentElement;p&&p!==document.body;p=p.parentElement){const o=getComputedStyle(p).overflowX;if((o==='auto'||o==='scroll'||o==='hidden')&&p.scrollWidth>p.clientWidth+4)return true}return false};
+ els=els.filter(e=>!e.closest('.tour,.tour2,#wmodal,#panel,.rt,.chips,.tk,[class*=marq]')&&!e.classList.contains('sr')&&e.getBoundingClientRect().height>12&&!hs(e));
+ const set=new Set(els);
+ els=els.filter(e=>!els.some(o=>o!==e&&e.contains(o)));
+ const par=new Map();
+ els.forEach(e=>{const p=e.parentElement;const n=par.get(p)||0;par.set(p,n+1);e.style.setProperty('--d',Math.min(n,5)*90+'ms');e.classList.add('sr')});
+ if(!('IntersectionObserver' in window)){els.forEach(e=>e.classList.add('in'));return}
+ const o=new IntersectionObserver(es=>es.forEach(x=>{if(x.isIntersecting){x.target.classList.add('in');o.unobserve(x.target)}}),{threshold:.05,rootMargin:'0px 0px -5% 0px'});
+ els.forEach(e=>o.observe(e));
+ setTimeout(()=>els.forEach(e=>{if(!e.classList.contains('in')){const r=e.getBoundingClientRect();if(r.top<innerHeight*1.5)e.classList.add('in')}}),1800);
+}
+(function(){const r=route;route=function(){const x=r.apply(this,arguments);try{scrollFX()}catch(e){}return x}})();
 applyLang();
 addEventListener('hashchange',route);
 route();
