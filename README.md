@@ -60,7 +60,9 @@ Veilor's site is **one static HTML file** with no account. Your browser asks the
 - Loads the most active Polymarket events (by 24-hour volume) and the Polymarket crypto events, and refreshes every 30 seconds.
 - Shows each market's Yes and No price, 24-hour change, volume, liquidity and settlement date.
 - Categories: All, Sports, Crypto, Politics, Macro, Equities, Commodities, IPO, Awards, Other.
-- Search, sort (24h volume, edge, newest, settling soonest), filter by source, watchlist (star a market).
+- Search, sort (24h volume, edge, newest, settling soonest), filter by source and by time to cut-off (**Closing soon**), and a watchlist (star a market). The watchlist is saved in your browser and survives a reload.
+- Every card shows the time left until the market closes.
+- **Export CSV** downloads the current market list as a file, generated in your browser.
 - Two views: Cards and Pro (list plus detail side by side).
 - New listings view, Edges view (markets where a fair line differs from the price), Sets view.
 
@@ -71,11 +73,12 @@ Veilor's site is **one static HTML file** with no account. Your browser asks the
 - **Activity:** recent trades.
 - **Outcomes:** the other outcomes of the same event.
 - **Add to calendar:** downloads a `.ics` file for the settlement date.
-- **Copy link** to a market.
+- **Copy link** to a market, **Share on X** to post it, and **Compare** to put two markets side by side (price, depth, cut-off and rules).
 
 ### Order quote ticket
 - Choose Buy or Sell, a size in shares or dollars, and an order type.
 - Veilor walks the live order book and shows: shares that fill now, average fill price, price impact, notional, venue fee (only if the venue reports fees as enabled), and cost.
+- A **price impact curve**, drawn from the live book, shows how the average price moves as your size grows.
 - If the visible book cannot fill your size, it says so.
 - The button **Trade on Polymarket** opens the market on Polymarket. The order type selector only describes what you would choose there.
 
@@ -88,15 +91,21 @@ Veilor's site is **one static HTML file** with no account. Your browser asks the
 - A bar at the bottom shows BTC, ETH, SOL and gold spot prices with coin badges, refreshed every 8 seconds.
 
 ### Wallet and portfolio
-- **Connect Wallet** uses your browser wallet (MetaMask, Rabby, Coinbase Wallet and others) and asks it to switch to Robinhood Chain (chain ID 4663), adding the network if needed. Veilor reads your address and balance only. It requests no signatures and no approvals.
+- **Connect Wallet** uses your browser wallet (MetaMask, Rabby, Coinbase Wallet and others) and asks it to switch to Robinhood Chain (chain ID 4663), adding the network if needed. **WalletConnect** (Reown AppKit, loaded from pinned library versions) is also offered, for wallets on your phone. Veilor reads your address and balance only. It requests no signatures and no approvals, and the wallet dialog says so.
+- **Portfolio CSV:** the portfolio can be exported as a file.
 - **Portfolio** shows, for any address you paste or your connected wallet: ETH balance, token balances, number of transactions sent, whether it is a contract, recent transactions with explorer links, and open Polymarket positions with profit and loss.
 
 ### Alerts
-- Alerts for a **spot price** (BTC, ETH, SOL, gold), the **Yes price of a market**, or **new market listings** (optionally by category).
+- Alerts for a **spot price** (BTC, ETH, SOL, XRP, DOGE, BNB, gold), the **Yes price of a market**, or **new market listings** (optionally by category).
 - Stored in your browser and checked while Veilor is open. Optional browser notifications.
 
 ### Status page
 - Checks, live from your browser, whether each service Veilor depends on is reachable and how fast: Robinhood Chain RPC, the Blockscout API, Polymarket market data, Polymarket order books, and spot prices.
+
+### Install, glossary and changelog
+- **Install app:** Veilor can be installed from your browser menu or from the footer link (it ships a web app manifest and a minimal service worker). It is the same site, with no app store.
+- A **Glossary** page explains terms such as Yes and No, spread, depth, slippage and resolution.
+- A **Changelog** page lists recent changes, newest first.
 
 ### Interface
 - Light theme (default) and dark theme, English and Chinese (中文), a responsive layout for phones, and animated backgrounds and a product tour on the home page that can be paused.
@@ -127,6 +136,10 @@ These are real limits, not hidden features:
 | How it works | `/how-it-works` | The five checks before an order |
 | Pricing | `/pricing` | Veilor is free; explains venue fees |
 | Roadmap | `/roadmap` | What exists and what is planned |
+| Glossary | `/glossary` | The terms used in the console, in plain words |
+| Changelog | `/changelog` | Recent changes, newest first |
+| Developers | `/developers` | Datafeed, calendar feeds and the read-only MCP server |
+| Open source | `/open-source` | The repository, its files and how to host it |
 | Case study | `/case-study` | A worked example with a Bitcoin market (example values) |
 | Docs | `/docs` | Guide to every number in the console |
 | MCP for agents | `/docs/mcp` | How to connect to the live MCP server |
@@ -216,7 +229,7 @@ If a source is blocked (a strict network, ad blocker or VPN), the related part o
 3. If the wallet is on another network, it asks to switch to Robinhood Chain (and to add the network if it is missing).
 4. Your short address appears in the top bar. Veilor remembers the choice in your browser and reconnects next time.
 
-On a phone, browser wallets only work inside a wallet's own browser (for example the MetaMask or Rabby in-app browser). A normal mobile browser has no wallet to connect.
+On a phone, browser wallets only work inside a wallet's own browser (for example the MetaMask or Rabby in-app browser). In a normal mobile browser, use the WalletConnect option instead.
 
 ### Portfolio lookup
 Open **Portfolio**, paste any address (`0x` followed by 40 hex characters), and press **Look up**. You can also press **Use my wallet**. If the address has open Polymarket positions, they are listed with size, average price, current price and profit and loss.
@@ -236,6 +249,7 @@ Alerts are checked while Veilor is open in a browser tab. When one triggers, it 
 | `/markets bitcoin` | Find a market id (searches the most active markets) |
 | `/alert market 12345 above 60` | Alert when that market's Yes price crosses 60¢ |
 | `/watch Crypto` | Message me when a new Crypto market is listed (`All` for every category) |
+| `/digest on` | One message a day, at about 08:00 UTC, with spot prices and the status of your alerts. `/digest off` stops it |
 | `/unwatch Crypto`, `/alerts`, `/clear` | Stop watching, list everything, delete everything |
 
 These run on the Worker every minute. Price alerts fire once, then are removed. At most 10 alerts and 5 watches per chat, and market alerts are checked for up to 20 distinct markets per minute across all users. New markets are detected from Polymarket's newest events and can be delayed by a minute or more. Your Telegram chat id is stored on the Worker to send the message. The bot never trades.
@@ -279,6 +293,7 @@ Veilor stores a few things in your browser's local storage, and nothing else:
 | `veilor-lang` | English or Chinese |
 | `veilor-al` | Your alerts |
 | `veilor-w` | Whether to reconnect your wallet automatically |
+| `veilor-wl` | Your watchlist (starred markets) |
 | `veilor-mt` | Cached Chinese translations of market titles |
 
 To remove everything, clear this site's data in your browser settings.
@@ -320,6 +335,10 @@ Everything (markup, styles, scripts, and the IBM Plex Mono font) lives in `index
 | File | Purpose |
 |---|---|
 | `index.html` | The whole application |
+| `manifest.webmanifest` | Web app manifest, so Veilor can be installed |
+| `sw.js` | A minimal service worker (it caches nothing) |
+| `worker/` | The read-only Cloudflare Worker: datafeed, calendar feeds, MCP server and the Telegram bot |
+| `img/` | Coin, wallet and venue logos |
 | `README.md` | This document |
 | `header.png` | Banner used at the top of this README and for link previews |
 | `logo.svg` | The Veilor logo (vector) |
@@ -358,7 +377,7 @@ Fair lines exist only for crypto and gold price questions. Other markets have no
 Treat it as a rough reference. It is a simple model with fixed volatility and can be wrong.
 
 **Why does Connect Wallet do nothing on my phone?**
-A normal mobile browser has no wallet. Open Veilor inside your wallet app's browser.
+A normal mobile browser has no browser wallet. Use the **WalletConnect** option, or open Veilor inside your wallet app's browser.
 
 **Are my alerts sent to a server?**
 Browser alerts: no. They live in your browser and only run while Veilor is open. Telegram alerts: yes, the Worker stores your chat id and the alert rules so it can message you.
