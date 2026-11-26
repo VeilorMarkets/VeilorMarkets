@@ -1,0 +1,13 @@
+{
+  "name": "Veilor",
+  "short_name": "Veilor",
+  "description": "The console for Robinhood Chain outcome markets. Read-only.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6efe8",
+  "theme_color": "#f6efe8",
+  "icons": [
+    { "src": "logo.png", "sizes": "2000x2000", "type": "image/png", "purpose": "any" }
+  ]
+}
