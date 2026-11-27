@@ -8,6 +8,10 @@
   <b>See the line. Trade the difference.</b><br>
   A console for prediction (outcome) markets, built on Robinhood Chain.<br>
   <a href="https://veilor.markets/">Live site</a> ·
+  <a href="https://veilor.markets/#/roadmap">Roadmap</a> ·
+  <a href="https://veilor.markets/#/token">Token roadmap</a> ·
+  <a href="https://veilor.markets/#/changelog">Changelog</a> ·
+  <a href="https://github.com/VeilorMarkets/VeilorMarkets/releases">Releases</a> ·
   <a href="https://x.com/VeilorMarkets">@VeilorMarkets</a>
 </p>
 
@@ -17,20 +21,26 @@
 
 1. [What is Veilor?](#what-is-veilor)
 2. [What it does today](#what-it-does-today)
-3. [What it does not do (yet)](#what-it-does-not-do-yet)
-4. [A tour of the pages](#a-tour-of-the-pages)
-5. [How the numbers are made](#how-the-numbers-are-made)
-6. [Data sources](#data-sources)
-7. [Wallet, portfolio and alerts](#wallet-portfolio-and-alerts)
-8. [Language and theme](#language-and-theme)
-9. [Keyboard shortcuts](#keyboard-shortcuts)
-10. [What your browser stores](#what-your-browser-stores)
-11. [Privacy and security](#privacy-and-security)
-12. [Run it, host it, change it](#run-it-host-it-change-it)
-13. [Repository contents](#repository-contents)
-14. [Roadmap](#roadmap)
-15. [FAQ](#faq)
-16. [Disclaimer](#disclaimer)
+3. [Tools for your own records](#tools-for-your-own-records)
+4. [What it does not do (yet)](#what-it-does-not-do-yet)
+5. [A tour of the pages](#a-tour-of-the-pages)
+6. [How the numbers are made](#how-the-numbers-are-made)
+7. [Data sources](#data-sources)
+8. [Wallet, portfolio and alerts](#wallet-portfolio-and-alerts)
+9. [Language and theme](#language-and-theme)
+10. [Keyboard shortcuts](#keyboard-shortcuts)
+11. [What your browser stores](#what-your-browser-stores)
+12. [Agents and developers](#agents-and-developers)
+13. [Privacy and security](#privacy-and-security)
+14. [Run it, host it, change it](#run-it-host-it-change-it)
+15. [Repository contents](#repository-contents)
+16. [Token](#token)
+17. [Verified by others](#verified-by-others)
+18. [Releases](#releases)
+19. [Roadmap](#roadmap)
+20. [Contributing and support](#contributing-and-support)
+21. [FAQ](#faq)
+22. [Disclaimer](#disclaimer)
 
 ---
 
@@ -105,10 +115,34 @@ Veilor's site is **one static HTML file** with no account. Your browser asks the
 ### Install, glossary and changelog
 - **Install app:** Veilor can be installed from your browser menu or from the footer link (it ships a web app manifest and a minimal service worker). It is the same site, with no app store.
 - A **Glossary** page explains terms such as Yes and No, spread, depth, slippage and resolution.
-- A **Changelog** page lists recent changes, newest first.
+- A **Changelog** page lists recent changes, newest first. It also shows a live **Built with HEY** card read from the public HEY Research Lab API (see [Verified by others](#verified-by-others)).
+- A **Feedback and support** page (`#/contact`) says where to send a wrong price or rule, a feature request, an alert problem or a security note.
+- A **Token roadmap** page (`#/token`) shows the $VEILOR contract with copy and explorer buttons, what is live today and what is only a plan.
 
 ### Interface
 - Light theme (default) and dark theme, English and Chinese (中文), a responsive layout for phones, and animated backgrounds and a product tour on the home page that can be paused.
+
+---
+
+## Tools for your own records
+
+Three tools in the Console help you work out and keep track of a position. They are arithmetic and record keeping only. They place no orders and are not advice.
+
+### Payoff calculator (`#/calc`)
+- Enter a price and an amount to see shares, cost, payout, profit, loss and the break-even probability.
+- A **scenario table** shows the expected value at each probability from 10% to 90%.
+- **Copy summary** puts the result on your clipboard. You can start from a live market.
+- Profit and loss ignore fees unless you enter one.
+
+### Trade journal (`#/journal`)
+- A private log of positions you took on a venue. You type every entry yourself, and nothing is connected to your wallet.
+- Shows unrealized profit and loss at the live price and exports the journal as a CSV file.
+- Entries are stored in your browser only (`veilor-jl`).
+
+### Your data (`#/data`)
+- Lists what Veilor stores in your browser.
+- **Download a backup** as a JSON file, **restore** it in another browser (only keys that start with `veilor-` are accepted), or **erase everything**.
+- Backups contain Veilor settings only. Veilor never holds wallet keys.
 
 ---
 
@@ -136,6 +170,11 @@ These are real limits, not hidden features:
 | How it works | `/how-it-works` | The five checks before an order |
 | Pricing | `/pricing` | Veilor is free; explains venue fees |
 | Roadmap | `/roadmap` | What exists and what is planned |
+| Token roadmap | `/token` | The $VEILOR contract, what is live and what is planned |
+| Payoff calculator | `/calc` | Shares, cost, payout, break-even and a scenario table |
+| Trade journal | `/journal` | A private log of positions, with live profit and loss |
+| Your data | `/data` | What is stored in your browser, backup, restore, erase |
+| Feedback and support | `/contact` | Where to send each kind of message |
 | Glossary | `/glossary` | The terms used in the console, in plain words |
 | Changelog | `/changelog` | Recent changes, newest first |
 | Developers | `/developers` | Datafeed, calendar feeds and the read-only MCP server |
@@ -299,8 +338,37 @@ Veilor stores a few things in your browser's local storage, and nothing else:
 | `veilor-w` | Whether to reconnect your wallet automatically |
 | `veilor-wl` | Your watchlist (starred markets) |
 | `veilor-mt` | Cached Chinese translations of market titles |
+| `veilor-jl` | Your trade journal entries |
 
-To remove everything, clear this site's data in your browser settings.
+You can see these keys, download a backup, restore it or erase everything on the **Your data** page (`#/data`). Or clear this site's data in your browser settings.
+
+---
+
+## Agents and developers
+
+Everything below is **read-only** and runs on the Cloudflare Worker in `worker/` (https://veilor-worker.yansahsick.workers.dev). Free-tier limits apply and uptime is not guaranteed.
+
+### Endpoints
+| Request | Returns |
+|---|---|
+| `GET /api/prices` | Reference spot prices used by the Console |
+| `GET /api/markets` | The market list the Console reads |
+| `GET /api/market/:id` | One market |
+| `GET /cal/all.ics` | A calendar feed for all categories |
+| `GET /cal/<category>.ics` | A calendar feed for one category |
+
+### MCP server for agents
+A read-only MCP server lets an AI agent read markets without any wallet access. The address and setup steps are on the MCP page of the site (`#/docs/mcp`). It works with any MCP client that supports remote HTTP servers.
+
+| Tool | What it does |
+|---|---|
+| `list_markets` | Browse live markets |
+| `get_market` | Read the rules and details of one market |
+| `get_order_book` | Check live depth |
+| `get_prices` | Read spot reference prices |
+| `fair_line` | Get a model estimate |
+
+An agent can read all of this. It cannot sign a transaction, place an order, hold or move funds, or ask for a seed phrase. Fair lines are model estimates and can be wrong.
 
 ---
 
@@ -347,6 +415,8 @@ Everything (markup, styles, scripts, and the IBM Plex Mono font) lives in `index
 | `header.png` | Banner used at the top of this README and for link previews |
 | `logo.svg` | The Veilor logo (vector) |
 | `logo.png` | The Veilor logo (2000×2000) |
+| `icon-192.png`, `icon-512.png`, `icon-maskable-512.png` | App icons listed in the web app manifest |
+| `CNAME` | The custom domain for GitHub Pages |
 
 The font IBM Plex Mono is embedded in `index.html` under the SIL Open Font License 1.1.
 
@@ -354,18 +424,65 @@ The font IBM Plex Mono is embedded in `index.html` under the SIL Open Font Licen
 
 ## Token
 
-$VEILOR on Robinhood Chain (chain ID 4663). Contract: `0x4d2ed6a271f17dd51ae7cd61ff81a26c9877f37d`. Official site: https://veilor.markets. Official X account: @VeilorMarkets. Veilor is read-only and never asks for a seed phrase, a private key or a signature.
+$VEILOR is a token on Robinhood Chain (chain ID 4663). It launched on Pons (ponsfamily.com).
+
+- **Contract:** `0x4d2ed6a271f17dd51ae7cd61ff81a26c9877f37d`
+- **Explorer:** https://robinhoodchain.blockscout.com/address/0x4d2ed6a271f17dd51ae7cd61ff81a26c9877f37d
+- **Official site:** https://veilor.markets
+- **Official X account:** @VeilorMarkets
+- **Token roadmap:** https://veilor.markets/#/token
+
+Always check the full address on the explorer before you trust any other one. Veilor is read-only and never asks for a seed phrase, a private key or a signature. The token roadmap separates what is live today from what is only a plan. Every plan is labeled NEXT until it ships, and nothing there is a promise about price or returns.
+
+---
+
+## Verified by others
+
+Veilor is listed on [HEY Research Lab](https://heyresearch.xyz/project/veilormarkets-veilormarkets), which records project activity from public sources. The Changelog page shows a live status card read from the public HEY API: activity, the latest recorded change, contract records and token verification.
+
+That text is HEY's own record, shown as it is, including the gaps (for example, product usage can be marked unknown). It is not a rating and not advice.
+
+---
+
+## Releases
+
+Every release has public notes: https://github.com/VeilorMarkets/VeilorMarkets/releases
+
+| Release | What it is |
+|---|---|
+| v1.0.0 | The Console |
+| v1.1.0 | A follow-up release |
+| v1.2.0 | Payoff calculator, Trade journal, Your data, new jump keys, Feedback and support, app icons |
+
+The in-site Changelog (`#/changelog`) lists changes newest first.
 
 ---
 
 ## Roadmap
 
-**Available now:** the console described above.
+The full roadmap is at https://veilor.markets/#/roadmap. Each item is labeled until it ships.
 
-**Planned, not built:**
-- Trading across more than one venue.
+**Available now:** the Console and the tools described above.
 
-Dates are not promised. Items move from "planned" to "available" only when they work.
+**Planned, labeled NEXT (not built):**
+- **Your feedback:** a place to vote on what comes next. (Reporting a wrong price or rule already works through the Feedback and support page.)
+- **Two venues:** one ticket for the same question on Polymarket and Robinhood Chain, with the rules compared first.
+- **Agents:** work within size, price and market limits that you set and can revoke, with every action logged.
+- **Line Vault:** a capped liquidity vault, with its risks and limits published first and a security review before it opens.
+- **Paid API:** higher request limits and history for bot teams. The free market tools stay free.
+
+Dates are not promised. Items move from "planned" to "available" only when they work. The token roadmap is separate: https://veilor.markets/#/token
+
+---
+
+## Contributing and support
+
+- **A wrong price, rule or fair line:** open an issue with the market name, what Veilor showed, what the venue showed, and the time. A screenshot helps.
+- **A feature request:** open a feature request on GitHub, or send a note to @VeilorMarkets on X.
+- **Alerts and the daily digest:** message [@VeilorAlertsBot](https://t.me/VeilorAlertsBot). Send `/help` for the commands and `/clear` to delete what it stores.
+- **A security issue:** please do not post it in public. Send a direct message to @VeilorMarkets on X first.
+
+Veilor will never message you first to ask for a seed phrase, a private key or a signature.
 
 ---
 
