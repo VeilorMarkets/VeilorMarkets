@@ -278,6 +278,10 @@ In the Console (press `?` anywhere to see this list):
 | `g` then `e` | Go to Edges |
 | `g` then `p` | Go to Portfolio |
 | `g` then `a` | Go to Alerts |
+| `g` then `c` | Go to the Payoff calculator |
+| `g` then `l` | Go to the Trade journal |
+| `g` then `d` | Go to Your data |
+| `g` then `w` | Go to the Watchlist |
 | `?` | Show the shortcut list |
 | `Esc` | Close a dialog or leave the search box |
 
@@ -345,6 +349,12 @@ Everything (markup, styles, scripts, and the IBM Plex Mono font) lives in `index
 | `logo.png` | The Veilor logo (2000×2000) |
 
 The font IBM Plex Mono is embedded in `index.html` under the SIL Open Font License 1.1.
+
+---
+
+## Token
+
+$VEILOR on Robinhood Chain (chain ID 4663). Contract: `0x4d2ed6a271f17dd51ae7cd61ff81a26c9877f37d`. Official site: https://veilor.markets. Official X account: @VeilorMarkets. Veilor is read-only and never asks for a seed phrase, a private key or a signature.
 
 ---
 
