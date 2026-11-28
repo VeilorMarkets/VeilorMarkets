@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Veilor documentation</title>
+<meta name="description" content="Documentation for Veilor: what it is, where its data comes from, the read-only endpoints and MCP server, the $VEILOR contract and how to report a problem.">
+<link rel="canonical" href="https://veilor.markets/docs/">
+<style>
+:root{color-scheme:light}
+body{margin:0;background:#f6efe8;color:#20140e;font:15px/1.65 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+main{max-width:760px;margin:0 auto;padding:40px 20px 70px}
+h1{font-size:34px;line-height:1.15;margin:8px 0 12px}
+h2{font-size:19px;margin:34px 0 8px;border-top:1px solid rgba(40,25,15,.14);padding-top:22px}
+p,li{color:#4a3b32}
+a{color:#c2561a}
+code{background:#f1e5d8;border:1px solid rgba(40,25,15,.14);border-radius:4px;padding:1px 6px;font-size:13px;word-break:break-all}
+.eb{letter-spacing:.14em;font-size:12px;color:#76675e}
+.btn{display:inline-block;margin:6px 8px 0 0;padding:9px 14px;border:1px solid rgba(40,25,15,.3);border-radius:7px;text-decoration:none;color:#20140e;font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+nav a{margin-right:14px}
+</style>
+</head>
+<body>
+<main>
+<nav aria-label="Veilor"><a href="https://veilor.markets/">Veilor</a><a href="https://veilor.markets/#/console">Console</a><a href="https://veilor.markets/#/docs">Interactive guide</a><a href="https://veilor.markets/#/developers">Developers</a><a href="https://veilor.markets/#/trust">Trust</a><a href="https://veilor.markets/#/changelog">Changelog</a></nav>
+<div class="eb" style="margin-top:26px">DOCUMENTATION</div>
+<h1>Veilor documentation</h1>
+<p>Veilor is a read-only console for prediction markets, with a wallet view for Robinhood Chain (chain ID 4663). It lists live markets from Polymarket, shows their real order books and rules, estimates a model fair line for crypto and gold price questions, and shows the cost of an order before you trade. It never holds your funds and never places or signs orders. This page reads without JavaScript. The full interactive guide is at <a href="https://veilor.markets/#/docs">veilor.markets/#/docs</a>.</p>
+
+<h2 id="data">Where the data comes from</h2>
+<p>Markets, prices, volume, rules, order books, price history and trades: Polymarket public APIs. Spot prices for BTC, ETH, SOL and gold: Binance. Balances, tokens and transactions on Robinhood Chain: its public RPC and the Blockscout explorer. Any of them can be delayed or wrong, so check the venue before you trade. The fair line is a model estimate and can be wrong.</p>
+
+<h2 id="console">Console tools</h2>
+<ul>
+<li><b>Markets, watchlist, new listings, edges.</b> Live markets with order books and venue rules.</li>
+<li><b>Order ticket.</b> Walks the live order book and shows the average fill, price impact and cost. It sends no order.</li>
+<li><b>Payoff calculator</b> (<a href="https://veilor.markets/#/calc">#/calc</a>). Turns a price and an amount into shares, payout, profit, loss and break-even probability. A link can reopen it with your numbers.</li>
+<li><b>Trade journal</b> (<a href="https://veilor.markets/#/journal">#/journal</a>). A private log stored in your browser, with statistics, CSV export and CSV import.</li>
+<li><b>Alerts</b> and the Telegram bot <a href="https://t.me/VeilorAlertsBot">@VeilorAlertsBot</a>.</li>
+<li><b>Price is probability</b> (<a href="https://veilor.markets/#/learn">#/learn</a>). An explainer and a five-question quiz.</li>
+</ul>
+
+<h2 id="developers">Developers</h2>
+<p>Read-only endpoints and an MCP server. Nothing to sign, no keys, no funds. Free-tier limits apply and uptime is not guaranteed.</p>
+<p>MCP server: <code>https://veilor-worker.yansahsick.workers.dev/mcp</code><br>Tools: <code>list_markets</code>, <code>get_market</code>, <code>get_order_book</code>, <code>get_prices</code>, <code>fair_line</code>.</p>
+<p>HTTP endpoints:<br>
+<code>GET https://veilor-worker.yansahsick.workers.dev/api/prices</code><br>
+<code>GET https://veilor-worker.yansahsick.workers.dev/api/markets</code><br>
+<code>GET https://veilor-worker.yansahsick.workers.dev/cal/all.ics</code> (calendar feed; per category: <code>/cal/&lt;category&gt;.ics</code>)</p>
+<p>Example: <code>curl https://veilor-worker.yansahsick.workers.dev/api/prices</code></p>
+<p>The endpoints have no written limits or versioning yet. They are listed here as they are today.</p>
+
+<h2 id="token">The $VEILOR token</h2>
+<p>$VEILOR launched on Pons (<a href="https://ponsfamily.com">ponsfamily.com</a>) on Robinhood Chain. Contract: <code>0x4d2ed6a271f17dd51ae7cd61ff81a26c9877f37d</code>. Check it on the explorer: <a href="https://robinhoodchain.blockscout.com/token/0x4d2ed6a271f17dd51ae7cd61ff81a26c9877f37d">Blockscout</a>. Plans are on the <a href="https://veilor.markets/#/token">token roadmap</a>; nothing there is live until it says so.</p>
+
+<h2 id="security">Security and trust</h2>
+<p>No audit is claimed. To report a security issue, send a direct message to <a href="https://x.com/VeilorMarkets">@VeilorMarkets</a> on X first and do not post it in public. The contact is also in <a href="https://veilor.markets/.well-known/security.txt">security.txt</a>. What Veilor never does, and what it stores, is on the <a href="https://veilor.markets/#/trust">Trust page</a>.</p>
+
+<h2 id="source">Source and releases</h2>
+<p><a class="btn" href="https://github.com/VeilorMarkets/VeilorMarkets">GitHub</a><a class="btn" href="https://github.com/VeilorMarkets/VeilorMarkets/releases">Releases</a><a class="btn" href="https://veilor.markets/#/changelog">Changelog</a><a class="btn" href="https://x.com/VeilorMarkets">X</a></p>
+<p>Nothing here is investment advice. Read the <a href="https://veilor.markets/#/risk">risk disclosure</a>.</p>
+</main>
+</body>
+</html>

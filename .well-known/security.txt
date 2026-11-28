@@ -1,0 +1,5 @@
+Contact: https://x.com/VeilorMarkets
+Expires: 2027-06-30T00:00:00.000Z
+Preferred-Languages: en, id
+Canonical: https://veilor.markets/.well-known/security.txt
+Policy: https://veilor.markets/#/trust
